@@ -5,17 +5,17 @@ A decentralized crowdfunding system built on BitcoinCash. It is a set of UTXO sm
 
 The system is divided up into 6 contracts:
 
-**CashStarterManager:** lets users create a new campaignUTXO and sends it to the CashStarter contract.
+1. **CashStarterManager:** lets users create a new campaignUTXO and sends it to the CashStarter contract.
 
-**CashStarter:** holds all campaignUTXO's and allows users to pledge to an existing campaignUTXO. Pledgers receive a pledgeNFT that records the campaignID and pledge amount in its commitment.
+2. **CashStarter:** holds all campaignUTXO's and allows users to pledge to an existing campaignUTXO. Pledgers receive a pledgeNFT that records the campaignID and pledge amount in its commitment.
 
-**Refund:** combined with a campaignUTXO and a pledgeNFT, allows the pledgeNFT owner to refund their pledge.
+3. **Refund:** combined with a campaignUTXO and a pledgeNFT, allows the pledgeNFT owner to refund their pledge.
 
-**Stop:** combined with a campaignUTXO, this contract allows * *anyone* * to cause a campaign to stop accepting pledges after the campaign deadline has been reached.
+4. **Stop:** combined with a campaignUTXO, this contract allows * *anyone* * to cause a campaign to stop accepting pledges after the campaign deadline has been reached.
 
-**Cancel:** combined with a campaignUTXO, this contract allows the campaign creator to stop accepting pledges even before the campaign deadline has been reached.
+5. **Cancel:** combined with a campaignUTXO, this contract allows the campaign creator to stop accepting pledges even before the campaign deadline has been reached.
 
-**Claim:** combined with a campaignUTXO, this contract allows the campaign creator to claim the pledged BCH if the campaigns fundraise amount is met or exceeded.
+6. **Claim:** combined with a campaignUTXO, this contract allows the campaign creator to claim the pledged BCH if the campaigns fundraise amount is met or exceeded.
 
 ## Incentivized Front-Ends
 Front-ends (websites, wallets, etc.) that interact with the CashStarter contracts (specifically, initialize() and claim()) can charge the user an 'interaction fee' from a minimum of 0.00001 BCH (1000sats) up to a maximum of 0.01 BCH (1,000,000 sats). This provides an anti-spam measure, as well as a financial incentive for websites and apps to provide the front-end interactions to users.
