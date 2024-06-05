@@ -6,10 +6,15 @@ A decentralized crowdfunding system built on BitcoinCash. It is a set of UTXO sm
 The system is divided up into 6 contracts:
 
 **CashStarterManager:** lets users create a new campaignUTXO and sends it to the CashStarter contract.
+
 **CashStarter:** holds all campaignUTXO's and allows users to pledge to an existing campaignUTXO. Pledgers receive a pledgeNFT that records the campaignID and pledge amount in its commitment.
+
 **Refund:** combined with a campaignUTXO and a pledgeNFT, allows the pledgeNFT owner to refund their pledge.
+
 **Stop:** combined with a campaignUTXO, this contract allows * *anyone* * to cause a campaign to stop accepting pledges after the campaign deadline has been reached.
+
 **Cancel:** combined with a campaignUTXO, this contract allows the campaign creator to stop accepting pledges even before the campaign deadline has been reached.
+
 **Claim:** combined with a campaignUTXO, this contract allows the campaign creator to claim the pledged BCH if the campaigns fundraise amount is met or exceeded.
 
 ## Incentivized Front-Ends
