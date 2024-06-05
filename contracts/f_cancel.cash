@@ -1,0 +1,68 @@
+pragma cashscript ^0.10.0;
+
+contract CashStarterCancel() {
+  //////////////////////////////////////////////////////////////////////////////////////////
+ ///////////////////////////////    Cancel Camapaign   ////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+// Creator removes minting capability from an active campaignNFT.
+// Prevents pledge(), fail(), cancel() from being called on the campaign.
+// Still allows refund() and claim() to be called on the campaign.
+//
+// Callable at any time, but only by the creator of the campaign.
+// If no pledges exist on the campaign then cancel() will burn the campignNFT.
+// If pledges do exist on the campaign then after cancel() only sats from pledges will
+// remain on it.
+// Creator can still claim() after the campaign has been cancel()'d if enough BCH is still pledged.
+// After the last pledge refund()'s, or the campaign is claim()'d, the campaignNFT will be burned.
+// ___________________________________________________________________________________
+//inputs: 
+//  0   masterNFT       [NFT]       (from CashStarterCancel contract)
+//  1   campaignNFT     [NFT]       (from CashStarter contract)
+//  2   userUTXO        [BCH]       (from user)
+//outputs:                                                      
+//  0   masterNFT       [NFT]       (to CashStarterCancel contract)   | O |   0   masterNFT   [NFT]     (to CashStarterCancel contract)    
+//  1   campaignNFT     [NFT]       (to CashStarter contract)         | R |   1   userUTXO    [BCH]     (to user)
+//  2   userUTXO        [BCH]       (to user)                         |   |
+//////////////////////////////////////////////////////////////////////////////////////////
+    function cancel() {
+        require(this.activeInputIndex == 0);                                                    // this contracts utxo must be input 0
+        require(tx.inputs.length == 3);                                                         // exactly three inputs
+        require(tx.outputs.length <= 3);                                                        // three or less outputs
+        require(tx.inputs[1].tokenCategory == 0xf47ee553b6f6df0c1b0ad32848f88c403a3433785d5cdd9c1fe071b69b373981 + 0x02); //input1 must be an active campaignNFT (minting)
+        require(tx.inputs[2].tokenCategory == 0x);                                                                        //input2 must have no tokens
+
+        bytes20 payoutAddress = bytes20(tx.inputs[1].nftCommitment.split(26)[0].split(6)[1]);   // get campaigns payoutAddress from commitment
+        require(tx.inputs[2].lockingBytecode == new LockingBytecodeP2PKH(payoutAddress));       // check that userUTXO is from that payoutAddress (proves creator is calling cancel())
+
+        bytes masterID = tx.inputs[0].nftCommitment.split(35)[1];                               // get ID from input0 (masterNFT)
+        require(masterID == 0xFFFFFFFFFF);                                                      // must be a masterNFT
+
+        bytes campaignID = tx.inputs[1].nftCommitment.split(35)[1];                             // get ID from input1 (campaignNFT)
+        require(campaignID != 0xFFFFFFFFFF);                                                    // prevent using a masterNFT
+
+        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);                 // recreate masterNFT to CashStarterCancel contract
+        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);                     // carry forward categoryID + capability
+        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);                         // carry forward token balance
+        require(tx.outputs[0].nftCommitment == tx.inputs[0].nftCommitment);                     // carry forward commitment
+        require(tx.outputs[0].value == tx.inputs[0].value);                                     // carry forward satoshis
+
+        if (tx.inputs[1].value == 1000) {                                                       // if nobody has pleged to this campaign
+            require(tx.outputs[1].lockingBytecode == tx.inputs[2].lockingBytecode);                 // userUTXO must be sent back to users address
+            require(tx.outputs[1].tokenCategory == 0x);                                             // userUTXO must not have tokens
+            require(tx.outputs[1].value == tx.inputs[2].value);                                     // userUTXO retains BCH value
+
+            require(tx.outputs.length == 2);                                                        // implicit burn the campaignNFT (consumes campignNFT 1000sats for miner fee)
+
+        } else {                                                                                // else pledges have been made
+            require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);                 // recreate campaignNFT to CashStarter contract
+            require(tx.outputs[1].tokenCategory == tx.inputs[1].tokenCategory.split(32)[0] + 0x01); // set campaignNFT's categoryID to mutable
+            require(tx.outputs[1].tokenAmount == tx.inputs[1].tokenAmount);                         // carry forward campaignNFT tokenAmount
+            require(tx.outputs[1].nftCommitment == tx.inputs[1].nftCommitment);                     // carry forward campaignNFT commitment
+            require(tx.outputs[1].value == tx.inputs[1].value - 1000);                              // remove initial 1000sats from campaignNFT for miner fee. only pledge sats remain
+
+            require(tx.outputs[2].lockingBytecode == tx.inputs[2].lockingBytecode);                 // userUTXO must be sent back to users address
+            require(tx.outputs[2].tokenCategory == 0x);                                             // userUTXO must not have tokens
+            require(tx.outputs[2].value == tx.inputs[2].value);                                     // userUTXO retains BCH value
+        }
+    }
+}
