@@ -1,4 +1,4 @@
-# CashStarter (Alpha Testing)
+# CashStarter (FundMe.Cash)
 
 ## What is CashStarter?
 A decentralized crowdfunding system built on BitcoinCash. It is a set of UTXO smart contracts written with [CashScript](https://cashscript.org/) that work together to provide a fundraising experience similar to Kickstarter or Flipstarter. 
@@ -27,7 +27,7 @@ The BCH is handled by the CashStarter contracts, but the campaign data is hosted
 *Open to ways of sharing this data between apps* 
 
 ## CashStarter Limits
-* Maximum campaigns: 1,099,511,627,774 
-* Maximum BCH you can fundraise: 2,814,749
-* Maximum BCH you can pledge: 2,814,849
+* Maximum campaigns: 549,755,813,887 
+* Maximum BCH you can fundraise: 1,407,374
+* Maximum BCH you can pledge: 1,407,374
 * Latest campaign ending block: 499,999,999 (year ~11521)
