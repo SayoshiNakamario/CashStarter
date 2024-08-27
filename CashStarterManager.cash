@@ -1,0 +1,68 @@
+pragma cashscript ^0.10.0;
+
+contract CashStarterManager() {
+  //////////////////////////////////////////////////////////////////////////////////////////
+ ////////////////////////////    Initialize a New Campaign   //////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//  Creates a new campaign UTXO on the CashStarter contract.
+//  User provides a UTXO to cover fees and ensures their address is the one that will receive the raised funds.
+//  Parameters are used to provide the campaigns ending block and funding amount.
+//  Built-in service provider fee (0 to 0.01 BCH) to incentivize website frontends.
+// ------------------------------------------------------------------------------------
+//inputs: 
+//  0   managerNFT          [NFT]       (from CashStarterManager contract)
+//  1   userUTXO            [BCH]       (from user)
+//outputs:
+//  0   managerNFT          [NFT]       (to CashStarterManager contract)
+//  1   campaignNFT         [NFT]       (to CashStarter contract)
+//  2   serviceFee          [BCH]       (to serviceProvider)
+//  3   {optional} change   [BCH]       (to user)
+//////////////////////////////////////////////////////////////////////////////////////////
+//parameters:
+//  pubkeyhash: campaign creators pubkeyhash
+//  fundTarget: amount of BCH to be raised (in satoshis)
+//  endBlock: what block height the campaign can be stop()'d at
+//  servicePKH: pubkeyhash for where the service fee will be sent
+//  serviceFee: amount of the service fee (max 0.01 BCH)
+//////////////////////////////////////////////////////////////////////////////////////////
+    function initialize(bytes20 pubkeyhash, int fundTarget, int endBlock, bytes20 servicePKH, int serviceFee) {
+        require(this.activeInputIndex == 0);                                                        // this contracts utxo must be input 0                                           
+        require(tx.inputs.length == 2);                                                             // exactly two inputs
+        require(tx.outputs.length <= 4);                                                            // four or less outputs
+        require(tx.inputs[1].lockingBytecode == new LockingBytecodeP2PKH(pubkeyhash));              // check that the provided pubkeyhash belongs to the wallet providing input1's utxo
+        require(tx.inputs[1].tokenCategory == 0x);                                                  // userUTXO must not have tokens
+        require(endBlock < 500000000);                                                              // check that the provided endBlock is below the max block value
+        require(serviceFee <= 1000000);                                                             // max serviceFee is 0.01 BCH
+        require(fundTarget <= 140737488355327);                                                     // max fundTarget is 1,407,374.88355327 BCH (max 6byte value minus MSB in last byte due to minimal encoding)
+
+        require(tx.inputs[0].tokenCategory == 0x64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 + 0x02);   // verify contract utxo is a CashStarter mintingNFT
+        bytes5 campaignID = bytes5(tx.inputs[0].nftCommitment.split(35)[1]);                        // get the last 5bytes of the mintingNFT nftCommitment (campaignID)
+        require(campaignID == 0xFFFFFFFFFF);                                                        // verify contract utxo is the managerNFT (excludes campaigns)
+
+        bytes5 campaignCounter, bytes35 restCommitment = tx.inputs[0].nftCommitment.split(5);       // get the number of created campaigns from managerNFT's nftCommitment
+        int newCampaignID = int(campaignCounter) + 1;                                               // add one to the campaignCountner
+        require(newCampaignID < 549755813888);                                                      // verify the new campaignCounter is not the max 5byte value (minus MSB in last byte due to minimal encoding)
+
+        require(tx.outputs[0].nftCommitment == bytes5(newCampaignID) + restCommitment);             // add new campaignCounter to contracts nftCommitment 
+        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);                     // carry forward managerNFT
+        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);                         // carry forward managerNFT's tokenCategory
+        require(tx.outputs[0].value == tx.inputs[0].value);                                         // carry forward managerNFT's satoshis
+        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);                             // carry forward managerNFT's existing token balance
+
+        require(tx.outputs[1].nftCommitment == bytes6(fundTarget) + pubkeyhash + bytes4(endBlock) + bytes5(0) + bytes5(newCampaignID));  // set campaign utxo nftCommitment
+        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2SH32(0xe3cab0f5a4aa3b8898d4708dbfa3b4126a723d5d982ac4c2691e33841fa8371f)); // send mintingNFT (campaign) to CashStarter contract
+        require(tx.outputs[1].tokenCategory == tx.inputs[0].tokenCategory);                         // set campaign utxo tokenCategory+capability to the same as managerNFT
+        require(tx.outputs[1].value == 1000);                                                       // set campaign utxo satoshis to 1000 (existence + can be used for cancel() and stop())
+        require(tx.outputs[1].tokenAmount == 0);                                                    // prevent tokens
+
+        require(tx.outputs[2].lockingBytecode == new LockingBytecodeP2PKH(servicePKH));             // send service fee to provided service address (servicePKH)
+        require(tx.outputs[2].tokenCategory == 0x);                                                 // prevent tokens
+        require(tx.outputs[2].value == serviceFee);                                                 // provided serviceFee amount
+
+        if (tx.outputs.length == 4) {                                                               // {optional} change output
+            require(tx.outputs[3].lockingBytecode == tx.inputs[1].lockingBytecode);                 // change must be sent to users address
+            require(tx.outputs[3].tokenCategory == 0x);                                             // change must not have tokens
+        }
+    }
+
+}

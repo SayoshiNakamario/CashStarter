@@ -1,0 +1,75 @@
+pragma cashscript ^0.10.0;
+
+contract CashStarterRefund() {
+  //////////////////////////////////////////////////////////////////////////////////////////
+ /////////////////////////////////////    Refund   ////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//  User refunds their pledge from a campaignNFT. If it's the last pledge on a campaign
+//  that has been stop()'d or cancel()'d then the campaign gets burned.
+//
+//  Note: pledgeNFT sats are not taken into account and are consumed in the miner fee,
+//      plus there is a hardcoded 1000sats miner fee, resulting in users overpaying a bit. 
+//      This was done as some wallets change the amount of sats on an NFT if the user moves
+//      them, so their value can't be counted on. This would cause poor UX if this contract
+//      expects the pledgeNFT to retain its original amount of sats to cover the miner fee
+//      and would fail until the user manually adds more.
+//_______________________________________________________________________________
+//inputs: 
+//  0   masterNFT           [NFT]       (from CashStarterRefund contract)
+//  1   campaignNFT         [NFT]       (from CashStarter contract)
+//  2   pledgeNFT           [NFT]       (from user)
+//outputs:  
+//  0   masterNFT           [NFT]       (to CashStarterRefund contract) |   O   |   masterNFT   [NFT]       (to CashStarterRefund contract)                                        
+//  1   campaignNFT         [NFT]       (to CashStarter contract)       |   R   |   refund      [BCH]       (to user)
+//  2   refund              [BCH]       (to user)                       |       |
+//////////////////////////////////////////////////////////////////////////////////////////
+    function refund() {
+        require(this.activeInputIndex == 0);                                            // this contracts utxo must be input 0   
+        require(tx.inputs.length == 3);                                                 // exactly three inputs
+        require(tx.outputs.length <= 3);                                                // three or less outputs
+
+        require(tx.inputs[0].tokenCategory == 0x64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 + 0x02); // input0 must be masterNFT
+        require(tx.inputs[0].nftCommitment.split(35)[1] == 0xFFFFFFFFFF);                                                 // input0 must be masterNFT ID
+
+        bytes category, bytes capability = tx.inputs[1].tokenCategory.split(32);        // get campaignNFT category and capability
+        require(category == tx.inputs[0].tokenCategory.split(32)[0]);                   // campaignNFT must be a CashStarter tokenCategory
+        require(capability != 0x);                                                      // campaignNFT must not be immutable (a receiptNFT)
+
+        bytes category2, bytes capability2 = tx.inputs[2].tokenCategory.split(32);      // get receiptNFT category and capability
+        require(category2 == tx.inputs[0].tokenCategory.split(32)[0]);                  // pledgeNFT must be a CashStarter tokenCategory
+        require(capability2 == 0x);                                                     // pledgeNFT must be immutable
+
+        bytes campaignID = tx.inputs[1].nftCommitment.split(35)[1];                     // get campaignID from campaignNFT
+        require(campaignID != 0xFFFFFFFFFF);                                            // prevent using a masterNFT    //shouldnt ever be triggered, max campaignID for 5bytes field is 549,755,813,887 (0xFFFFFFFF7F)
+
+        bytes refundID = tx.inputs[2].nftCommitment.split(35)[1];                       // get pledgeNFTs campaignID
+        require(campaignID == refundID);                                                // require they match (refund is for this campaign)
+
+        int pledgeAmount = int(tx.inputs[2].nftCommitment.split(6)[0]);                 // get pledge amount from pledgeNFT commitment
+
+        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);         // recreate masterNFT to CashStarterRefund contract
+        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);             // carry forward tokenCategory + capability
+        require(tx.outputs[0].value == tx.inputs[0].value);                             // carry forward balance
+        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);                 // carry forward tokenAmount
+        require(tx.outputs[0].nftCommitment == tx.inputs[0].nftCommitment);             // carry forward commitment
+
+        if (tx.inputs[1].value <= pledgeAmount) {                                       // if this refund would empty the campaign of sats
+            require(tx.outputs[1].lockingBytecode == tx.inputs[2].lockingBytecode);     // create output1 to users address
+            require(tx.outputs[1].tokenCategory == 0x);                                 // no tokens
+            require(tx.outputs[1].value == tx.inputs[1].value - 1000);                  // refund remaining campaign amount to user minus miner fee
+
+            require(tx.outputs.length == 2);                                            // implicit burn the campaignNFT & pledgeNFT
+
+        } else {                                                                        // else this refund will leave sats remaining on the campaign
+            require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);     // recreate campaignNFT to CashStarter contract
+            require(tx.outputs[1].tokenCategory == tx.inputs[1].tokenCategory);         // carry forward tokenCategory + capability
+            require(tx.outputs[1].value == tx.inputs[1].value - pledgeAmount);          // carry forward balance minus refunded amount
+            require(tx.outputs[1].tokenAmount == tx.inputs[1].tokenAmount);             // carry forward tokenAmount
+            require(tx.outputs[1].nftCommitment == tx.inputs[1].nftCommitment);         // carry forward commitment
+
+            require(tx.outputs[2].lockingBytecode == tx.inputs[2].lockingBytecode);     // create refund to users address
+            require(tx.outputs[2].tokenCategory == 0x);                                 // no tokens
+            require(tx.outputs[2].value == pledgeAmount - 1000);                        // refund users pledgeAmount in satoshis minus miner fee
+        }
+    }
+}

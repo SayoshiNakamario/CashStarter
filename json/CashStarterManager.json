@@ -1,0 +1,44 @@
+{
+  "contractName": "CashStarterManager",
+  "constructorInputs": [],
+  "abi": [
+    {
+      "name": "initialize",
+      "inputs": [
+        {
+          "name": "pubkeyhash",
+          "type": "bytes20"
+        },
+        {
+          "name": "fundTarget",
+          "type": "int"
+        },
+        {
+          "name": "endBlock",
+          "type": "int"
+        },
+        {
+          "name": "servicePKH",
+          "type": "bytes20"
+        },
+        {
+          "name": "serviceFee",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_INPUTINDEX OP_0 OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_4 OP_LESSTHANOREQUAL OP_VERIFY OP_1 OP_UTXOBYTECODE 76a914 OP_2 OP_PICK OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_1 OP_UTXOTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_2 OP_PICK 0065cd1d OP_LESSTHAN OP_VERIFY OP_4 OP_PICK 40420f OP_LESSTHANOREQUAL OP_VERIFY OP_OVER ffffffffff7f OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_UTXOTOKENCATEGORY 64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 OP_2 OP_CAT OP_EQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT 23 OP_SPLIT OP_NIP ffffffffff OP_EQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT OP_5 OP_SPLIT OP_SWAP OP_BIN2NUM OP_1ADD OP_DUP 000000008000 OP_LESSTHAN OP_VERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT OP_OVER OP_5 OP_NUM2BIN OP_3 OP_ROLL OP_CAT OP_EQUALVERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_NUMEQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_UTXOTOKENAMOUNT OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_3 OP_ROLL OP_6 OP_NUM2BIN OP_3 OP_ROLL OP_CAT OP_3 OP_ROLL OP_4 OP_NUM2BIN OP_CAT OP_0 OP_5 OP_NUM2BIN OP_CAT OP_ROT OP_5 OP_NUM2BIN OP_CAT OP_EQUALVERIFY OP_1 OP_OUTPUTBYTECODE aa20 e3cab0f5a4aa3b8898d4708dbfa3b4126a723d5d982ac4c2691e33841fa8371f OP_CAT 87 OP_CAT OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_1 OP_OUTPUTVALUE e803 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTBYTECODE 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_4 OP_NUMEQUAL OP_IF OP_3 OP_OUTPUTBYTECODE OP_1 OP_UTXOBYTECODE OP_EQUALVERIFY OP_3 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_ENDIF OP_1",
+  "source": "pragma cashscript ^0.10.0;\r\n\r\ncontract CashStarterManager() {\r\n    function initialize(bytes20 pubkeyhash, int fundTarget, int endBlock, bytes20 servicePKH, int serviceFee) {\r\n        require(this.activeInputIndex == 0);\r\n        require(tx.inputs.length == 2);\r\n        require(tx.outputs.length <= 4);\r\n        require(tx.inputs[1].lockingBytecode == new LockingBytecodeP2PKH(pubkeyhash));\r\n        require(tx.inputs[1].tokenCategory == 0x);\r\n        require(endBlock < 500000000);\r\n        require(serviceFee <= 1000000);\r\n        require(fundTarget <= 140737488355327);\r\n\r\n        require(tx.inputs[0].tokenCategory == 0x64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 + 0x02);\r\n        bytes5 campaignID = bytes5(tx.inputs[0].nftCommitment.split(35)[1]);\r\n        require(campaignID == 0xFFFFFFFFFF);\r\n\r\n        bytes5 campaignCounter, bytes35 restCommitment = tx.inputs[0].nftCommitment.split(5);\r\n        int newCampaignID = int(campaignCounter) + 1;\r\n        require(newCampaignID < 549755813888);\r\n\r\n        require(tx.outputs[0].nftCommitment == bytes5(newCampaignID) + restCommitment);\r\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\r\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\r\n        require(tx.outputs[0].value == tx.inputs[0].value);\r\n        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);\r\n\r\n        require(tx.outputs[1].nftCommitment == bytes6(fundTarget) + pubkeyhash + bytes4(endBlock) + bytes5(0) + bytes5(newCampaignID));\r\n        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2SH32(0xe3cab0f5a4aa3b8898d4708dbfa3b4126a723d5d982ac4c2691e33841fa8371f));\r\n        require(tx.outputs[1].tokenCategory == tx.inputs[0].tokenCategory);\r\n        require(tx.outputs[1].value == 1000);\r\n        require(tx.outputs[1].tokenAmount == 0);\r\n\r\n        require(tx.outputs[2].lockingBytecode == new LockingBytecodeP2PKH(servicePKH));\r\n        require(tx.outputs[2].tokenCategory == 0x);\r\n        require(tx.outputs[2].value == serviceFee);\r\n\r\n        if (tx.outputs.length == 4) {\r\n            require(tx.outputs[3].lockingBytecode == tx.inputs[1].lockingBytecode);\r\n            require(tx.outputs[3].tokenCategory == 0x);\r\n        }\r\n    }\r\n\r\n}",
+  "debug": {
+    "bytecode": "c0009c69c3529c69c454a16951c70376a91452797e0288ac7e876951ce0087695279040065cd1d9f6954790340420fa169517906ffffffffff7fa16900ce2064c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748527e876900cf01237f77007a05ffffffffff876900cf557f517a8151930079060000000080009f6900d251795580537a7e876900cd00c7876900d100ce876900cc00c69c6900d300d09c6951d2537a5680537a7e537a54807e0055807e527a55807e876951cd02aa2020e3cab0f5a4aa3b8898d4708dbfa3b4126a723d5d982ac4c2691e33841fa8371f7e01877e876951d100ce876951cc02e8039c6951d3009c6952cd0376a914527a7e0288ac7e876952d100876952cc517a9c69c4549c6353cd51c7876953d10087696851",
+    "sourceMap": "5:16:5:37;:41::42;:16:::1;:8::44;6:16:6:32:0;:36::37;:16:::1;:8::39;7:16:7:33:0;:37::38;:16:::1;:8::40;8:26:8:27:0;:16::44;:48::84;:73::83;;:48::84;;;:16:::1;:8::86;9:26:9:27:0;:16::42;:46::48;:16:::1;:8::50;10:16:10:24:0;;:27::36;:16:::1;:8::38;11:16:11:26:0;;:30::37;:16:::1;:8::39;12:16:12:26:0;;:30::45;:16:::1;:8::47;14:26:14:27:0;:16::42;:46::112;:115::119;:46:::1;:16;:8::121;15:45:15:46:0;:35::61;:68::70;:35::71:1;:::74;16:16:16:26:0;;:30::42;:16:::1;:8::44;18:67:18:68:0;:57::83;:90::91;:57::92:1;19:32:19:47:0;;:28::48:1;:51::52:0;:28:::1;20:16:20:29:0;;:32::44;:16:::1;:8::46;22:27:22:28:0;:16::43;:54::67;;:47::68:1;;:71::85:0;;:47:::1;:16;:8::87;23:27:23:28:0;:16::45;:59::60;:49::77;:16:::1;:8::79;24:27:24:28:0;:16::43;:57::58;:47::73;:16:::1;:8::75;25:27:25:28:0;:16::35;:49::50;:39::57;:16:::1;:8::59;26:27:26:28:0;:16::41;:55::56;:45::69;:16:::1;:8::71;28:27:28:28:0;:16::43;:54::64;;:47::65:1;;:68::78:0;;:47:::1;:88::96:0;;:81::97:1;;:47;:107::108:0;:100::109:1;;:47;:119::132:0;;:112::133:1;;:47;:16;:8::135;29:27:29:28:0;:16::45;:49::142;:75::141;:49::142;;;:16:::1;:8::144;30:27:30:28:0;:16::43;:57::58;:47::73;:16:::1;:8::75;31:27:31:28:0;:16::35;:39::43;:16:::1;:8::45;32:27:32:28:0;:16::41;:45::46;:16:::1;:8::48;34:27:34:28:0;:16::45;:49::85;:74::84;;:49::85;;;:16:::1;:8::87;35:27:35:28:0;:16::43;:47::49;:16:::1;:8::51;36:27:36:28:0;:16::35;:39::49;;:16:::1;:8::51;38:12:38:29:0;:33::34;:12:::1;:36:41:9:0;39:31:39:32;:20::49;:63::64;:53::81;:20:::1;:12::83;40:31:40:32:0;:20::47;:51::53;:20:::1;:12::55;38:36:41:9;4:4:42:5",
+    "logs": [],
+    "requireMessages": []
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.10.0-next.5"
+  },
+  "updatedAt": "2024-06-29T00:30:06.021Z"
+}

@@ -1,0 +1,32 @@
+{
+  "contractName": "CashStarterClaim",
+  "constructorInputs": [],
+  "abi": [
+    {
+      "name": "claim",
+      "inputs": [
+        {
+          "name": "servicePKH",
+          "type": "bytes20"
+        },
+        {
+          "name": "serviceFee",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_INPUTINDEX OP_0 OP_NUMEQUALVERIFY OP_TXINPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_2 OP_UTXOTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_OVER OP_1 OP_UTXOVALUE 32 OP_MUL e803 OP_DIV OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_UTXOTOKENCATEGORY 64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 OP_2 OP_CAT OP_EQUALVERIFY OP_0 OP_UTXOTOKENCOMMITMENT 23 OP_SPLIT OP_NIP ffffffffff OP_EQUALVERIFY OP_1 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_SWAP OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_EQUALVERIFY OP_0 OP_EQUAL OP_NOT OP_VERIFY OP_1 OP_UTXOTOKENCOMMITMENT 23 OP_SPLIT OP_NIP ffffffffff OP_EQUAL OP_NOT OP_VERIFY OP_1 OP_UTXOTOKENCOMMITMENT 1a OP_SPLIT OP_DROP OP_6 OP_SPLIT OP_2 OP_UTXOBYTECODE 76a914 OP_2 OP_PICK OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_1 OP_UTXOVALUE OP_ROT OP_BIN2NUM OP_GREATERTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTVALUE OP_0 OP_UTXOVALUE OP_NUMEQUALVERIFY OP_0 OP_OUTPUTTOKENCOMMITMENT OP_0 OP_UTXOTOKENCOMMITMENT OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_UTXOTOKENAMOUNT OP_NUMEQUALVERIFY OP_1 OP_OUTPUTBYTECODE 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_1 OP_OUTPUTVALUE OP_1 OP_UTXOVALUE OP_2 OP_UTXOVALUE OP_ADD OP_3 OP_PICK e803 OP_ADD OP_SUB OP_NUMEQUALVERIFY OP_2 OP_OUTPUTBYTECODE 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUALVERIFY OP_2 OP_OUTPUTVALUE OP_NUMEQUAL",
+  "source": "pragma cashscript ^0.10.0;\r\n\r\ncontract CashStarterClaim() {\r\n    function claim(bytes20 servicePKH, int serviceFee) {\r\n        require(this.activeInputIndex == 0);\r\n        require(tx.inputs.length == 3);\r\n        require(tx.outputs.length == 3);\r\n        require(tx.inputs[2].tokenCategory == 0x);\r\n        require(serviceFee <= tx.inputs[1].value * 50 / 1000);\r\n\r\n        require(tx.inputs[0].tokenCategory == 0x64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 + 0x02);\r\n        require(tx.inputs[0].nftCommitment.split(35)[1] == 0xFFFFFFFFFF);\r\n\r\n        bytes category, bytes capability = tx.inputs[1].tokenCategory.split(32);\r\n        require (category == tx.inputs[0].tokenCategory.split(32)[0]);\r\n        require (capability != 0x);\r\n\r\n        require(tx.inputs[1].nftCommitment.split(35)[1] != 0xFFFFFFFFFF);\r\n\r\n        bytes campaignInfo = tx.inputs[1].nftCommitment.split(26)[0];\r\n        bytes6 fundTarget, bytes20 payoutAddress = campaignInfo.split(6);\r\n        require(tx.inputs[2].lockingBytecode == new LockingBytecodeP2PKH(payoutAddress));\r\n        require(tx.inputs[1].value >= int(fundTarget));\r\n\r\n        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);\r\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);\r\n        require(tx.outputs[0].value == tx.inputs[0].value);\r\n        require(tx.outputs[0].nftCommitment== tx.inputs[0].nftCommitment);\r\n        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);\r\n\r\n        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(payoutAddress));\r\n        require(tx.outputs[1].tokenCategory == 0x);\r\n        require(tx.outputs[1].value == tx.inputs[1].value + tx.inputs[2].value - (serviceFee + 1000));\r\n\r\n        require(tx.outputs[2].lockingBytecode == new LockingBytecodeP2PKH(servicePKH));\r\n        require(tx.outputs[2].tokenCategory == 0x);\r\n        require(tx.outputs[2].value == serviceFee);\r\n    }\r\n}\r\n",
+  "debug": {
+    "bytecode": "c0009c69c3539c69c4539c6952ce008769517951c601329502e80396a16900ce2064c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748527e876900cf01237f7705ffffffffff876951ce01207f517a00ce01207f758769007a0087916951cf01237f7705ffffffffff87916951cf011a7f75007a567f52c70376a91452797e0288ac7e876951c6527a81a26900cd00c7876900d100ce876900cc00c69c6900d200cf876900d300d09c6951cd0376a914527a7e0288ac7e876951d100876951cc51c652c693537902e80393949c6952cd0376a914527a7e0288ac7e876952d100876952cc517a9c",
+    "sourceMap": "5:16:5:37;:41::42;:16:::1;:8::44;6:16:6:32:0;:36::37;:16:::1;:8::39;7:16:7:33:0;:37::38;:16:::1;:8::40;8:26:8:27:0;:16::42;:46::48;:16:::1;:8::50;9:16:9:26:0;;:40::41;:30::48;:51::53;:30:::1;:56::60:0;:30:::1;:16;:8::62;11:26:11:27:0;:16::42;:46::112;:115::119;:46:::1;:16;:8::121;12:26:12:27:0;:16::42;:49::51;:16::52:1;:::55;:59::71:0;:16:::1;:8::73;14:53:14:54:0;:43::69;:76::78;:43::79:1;15:17:15:25:0;;:39::40;:29::55;:62::64;:29::65:1;:::68;:17;:8::70;16:17:16:27:0;;:31::33;:17:::1;;:8::35;18:26:18:27:0;:16::42;:49::51;:16::52:1;:::55;:59::71:0;:16:::1;;:8::73;20:39:20:40:0;:29::55;:62::64;:29::65:1;:::68;21:51:21:63:0;;:70::71;:51::72:1;22:26:22:27:0;:16::44;:48::87;:73::86;;:48::87;;;:16:::1;:8::89;23:26:23:27:0;:16::34;:42::52;;:38::53:1;:16;:8::55;25:27:25:28:0;:16::45;:59::60;:49::77;:16:::1;:8::79;26:27:26:28:0;:16::43;:57::58;:47::73;:16:::1;:8::75;27:27:27:28:0;:16::35;:49::50;:39::57;:16:::1;:8::59;28:27:28:28:0;:16::43;:56::57;:46::72;:16:::1;:8::74;29:27:29:28:0;:16::41;:55::56;:45::69;:16:::1;:8::71;31:27:31:28:0;:16::45;:49::88;:74::87;;:49::88;;;:16:::1;:8::90;32:27:32:28:0;:16::43;:47::49;:16:::1;:8::51;33:27:33:28:0;:16::35;:49::50;:39::57;:70::71;:60::78;:39:::1;:82::92:0;;:95::99;:82:::1;:39::100;:16;:8::102;35:27:35:28:0;:16::45;:49::85;:74::84;;:49::85;;;:16:::1;:8::87;36:27:36:28:0;:16::43;:47::49;:16:::1;:8::51;37:27:37:28:0;:16::35;:39::49;;:16:::1",
+    "logs": [],
+    "requireMessages": []
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.10.0-next.5"
+  },
+  "updatedAt": "2024-06-29T00:32:39.774Z"
+}

@@ -1,0 +1,55 @@
+pragma cashscript ^0.10.0;
+
+contract CashStarterStop() {
+  //////////////////////////////////////////////////////////////////////////////////////////
+ /////////////////////////////////    Stop Camapaign   ////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+// Removes the minting capability from a campaignNFT.
+// Prevents pledge(), cancel(), and stop().
+// Still allows refund() and claim().
+//
+// Callable by anyone after the campaignNFT's endBlock value has passed.
+// If no pledges have been made to the campaign then stop() will burn the campignNFT.
+// If pledges have been made to the campaign then after stop() only sats from pledges will
+// remain on it.
+// ___________________________________________________________________________________
+//inputs: 
+//  0   masterNFT               [NFT]           (from CashStarterStop contract)
+//  1   campaignNFT             [NFT]           (from CashStarter contract)
+//outputs:                                                      
+//  0   masterNFT               [NFT]           (from CashStarterStop contract)
+//  1   campaignNFT {optional}  [NFT]           (to CashStarter contract)
+//////////////////////////////////////////////////////////////////////////////////////////
+    function stop() {
+        require(this.activeInputIndex == 0);                                            // this contracts utxo must be input 0
+        require(tx.inputs[1].tokenCategory == 0x64c9ea104e07d9099bc3cdcb2a0035286773790c40dbcb0ae67068b1b8453748 + 0x02); //input1 must be an active campaignNFT (minting) 
+        require(tx.inputs.length == 2);                                                 // exactly two inputs
+        require(tx.outputs.length <= 2);                                                // two or less inputs
+
+        bytes campaignID = tx.inputs[1].nftCommitment.split(35)[1];                     // get ID from input1 (campaignNFT)
+        require(campaignID != 0xFFFFFFFFFF);                                            // prevent using a masterNFT
+
+        bytes masterID = tx.inputs[0].nftCommitment.split(35)[1];                       // get ID from input0 (masterNFT)
+        require(masterID == 0xFFFFFFFFFF);                                              // must be a masterNFT
+
+        bytes4 endBlock = bytes4(tx.inputs[1].nftCommitment.split(26)[1].split(4)[0]);  // get endBlock value from campaignNFT commitment
+        require(tx.time >= int(endBlock));                                              // require current blockheight meets or surpassed endBlock 
+
+        require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);         // recreate masterNFT to CashStarterStop contract
+        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory);             // carry forward categoryID + capability
+        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount);                 // carry forward token balance
+        require(tx.outputs[0].nftCommitment == tx.inputs[0].nftCommitment);             // carry forward commitment
+        require(tx.outputs[0].value == tx.inputs[0].value);                             // carry forward satoshis
+
+        if (tx.inputs[1].value == 1000) {                                               // if nobody has pleged to this campaign
+            require(tx.outputs.length == 1);                                            // implicit burn the campaignNFT
+
+        } else {                                                                        // else someone has pledged
+            require(tx.outputs[1].lockingBytecode == tx.inputs[1].lockingBytecode);     // recreate campaignNFT to CashStarter contract
+            require(tx.outputs[1].tokenCategory == tx.inputs[1].tokenCategory.split(32)[0] + 0x01);// set campaignNFT's categoryID to mutable
+            require(tx.outputs[1].tokenAmount == tx.inputs[1].tokenAmount);             // carry forward campaignNFT tokenAmount
+            require(tx.outputs[1].nftCommitment == tx.inputs[1].nftCommitment);         // carry forward campaignNFT commitment
+            require(tx.outputs[1].value == tx.inputs[1].value - 1000);                  // remove initial 1000sats from campaignNFT for miner fee
+        }
+    }
+}
