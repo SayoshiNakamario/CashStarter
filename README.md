@@ -18,9 +18,9 @@ The system is divided up into 6 contracts:
 6. **Claim:** combined with a campaignUTXO, this contract allows the campaign creator to claim the pledged BCH if the campaigns fundraise amount is met or exceeded.
 
 ## Incentivized Front-Ends
-Front-ends (websites, wallets, etc.) that interact with the CashStarter contracts (specifically, initialize()) can charge the user an 'interaction fee' from a minimum of 0.00001 BCH (1000sats) up to a maximum of 0.01 BCH (1,000,000 sats). The claim() function also allows the front-end to charge up to a maximum of 1.5% of the campaigns raised funds. These provide an anti-spam measure, as well as a financial incentive for websites and apps to provide the front-end interactions to users.
+Front-ends (websites, wallets, etc.) that interact with the CashStarter contracts (specifically, initialize()) can charge the user a 'campaign creation fee' from a minimum of 0.00001 BCH (1000sats) up to a maximum of 0.01 BCH (1,000,000 sats). The claim() function also allows the front-end to charge up to a maximum of 5% of the campaigns raised funds. These provide an anti-spam measure, as well as a financial incentive for websites and apps to provide the front-end interactions to users.
 
-The first implementation is [FundMe.Cash](https://fundme.cash)
+The first implementation is [FundMe.Cash](https://fundme.cash) which has a campaign creation fee of 0.01 BCH, and a claim() fee of 1.5%.
 
 ## Campaign Data
 The BCH is handled by the CashStarter contracts, but the campaign data is hosted outside the blockchain. Currently FundMe.Cash hosts the campaign data itself.
